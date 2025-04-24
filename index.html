@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainSpark | Sudoku Challenge</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600&display=swap');
+
+        :root {
+            --cream: #FFF9F0;
+            --beige: #F5E6D8;
+            --light-brown: #E8D5C0;
+            --gold: #D4AF37;
+            --coffee: #A68A64;
+            --text: #3A3226;
+            --shadow: rgba(58, 50, 38, 0.1);
+            --card-bg: rgba(255, 249, 240, 0.85);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--cream);
+            color: var(--text);
+            font-family: 'Montserrat', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* Элегантный фон с пузырями */
+        .bubbles-bg {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            background: linear-gradient(135deg, var(--beige), var(--cream));
+            overflow: hidden;
+        }
+
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(212, 175, 55, 0.08);
+            backdrop-filter: blur(2px);
+            animation: float 15s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.5; }
+            90% { opacity: 0.5; }
+            100% { transform: translateY(-1000px) rotate(720deg); opacity: 0; }
+        }
+
+        /* Основные стили */
+        header {
+            padding: 2rem 1rem 1rem;
+            text-align: center;
+            background: linear-gradient(to bottom, var(--cream), transparent);
+            position: relative;
+        }
+
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: var(--coffee);
+            margin-bottom: 0.5rem;
+            position: relative;
+            display: inline-block;
+        }
+
+        .logo::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        }
+
+        .game-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            color: var(--coffee);
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .game-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .game-board {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 25px var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .sudoku-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            grid-template-rows: repeat(9, 1fr);
+            gap: 1px;
+            border: 2px solid var(--coffee);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .sudoku-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            background-color: var(--card-bg);
+            border: 1px solid var(--light-brown);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .sudoku-cell:hover {
+            background-color: var(--beige);
+        }
+
+        .sudoku-cell.fixed {
+            background-color: rgba(166, 138, 100, 0.1);
+            color: var(--coffee);
+        }
+
+        .sudoku-cell.highlighted {
+            background-color: rgba(212, 175, 55, 0.2);
+        }
+
+        .sudoku-cell.selected {
+            background-color: rgba(212, 175, 55, 0.3);
+        }
+
+        .sudoku-cell.error {
+            color: #d44;
+        }
+
+        /* Толстые границы для блоков 3x3 */
+        .sudoku-cell:nth-child(3n) {
+            border-right: 2px solid var(--coffee);
+        }
+
+        .sudoku-cell:nth-child(9n) {
+            border-right: none;
+        }
+
+        .sudoku-row:nth-child(3n) .sudoku-cell {
+            border-bottom: 2px solid var(--coffee);
+        }
+
+        .sudoku-row:last-child .sudoku-cell {
+            border-bottom: none;
+        }
+
+        .number-selector {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .number-btn {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: var(--beige);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .number-btn:hover {
+            background: var(--light-brown);
+            transform: translateY(-2px);
+        }
+
+        .number-btn:active {
+            transform: translateY(0);
+        }
+
+        .erase-btn {
+            background: rgba(166, 138, 100, 0.2);
+        }
+
+        .erase-btn:hover {
+            background: rgba(166, 138, 100, 0.3);
+        }
+
+        .game-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.5rem;
+        }
+
+        .control-btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .new-game-btn {
+            background: linear-gradient(to right, var(--gold), var(--coffee));
+            color: white;
+            box-shadow: 0 3px 10px rgba(212, 175, 55, 0.3);
+        }
+
+        .new-game-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+        }
+
+        .check-btn {
+            background: var(--beige);
+            color: var(--coffee);
+        }
+
+        .check-btn:hover {
+            background: var(--light-brown);
+        }
+
+        .difficulty-selector {
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+
+        .difficulty-btn {
+            padding: 0.5rem 1rem;
+            margin: 0 0.3rem;
+            border: 1px solid var(--light-brown);
+            border-radius: 50px;
+            background: transparent;
+            color: var(--coffee);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .difficulty-btn.active {
+            background: var(--gold);
+            color: white;
+            border-color: var(--gold);
+        }
+
+        .difficulty-btn:hover {
+            border-color: var(--gold);
+        }
+
+        .game-info {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 8px 25px var(--shadow);
+        }
+
+        .game-description {
+            margin-bottom: 1.5rem;
+            line-height: 1.7;
+        }
+
+        .game-stats {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--coffee);
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .stat i {
+            color: var(--gold);
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            background: linear-gradient(to top, var(--beige), transparent);
+            margin-top: 3rem;
+            position: relative;
+        }
+
+        footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        }
+
+        /* Анимации */
+        @keyframes successPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(212, 175, 55, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+        }
+
+        .success-animation {
+            animation: successPulse 0.6s ease-out;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 2rem;
+            }
+            
+            .game-title {
+                font-size: 1.5rem;
+            }
+            
+            .game-container {
+                padding: 1rem;
+            }
+            
+            .game-board {
+                padding: 1rem;
+            }
+            
+            .sudoku-cell {
+                font-size: 1.2rem;
+            }
+            
+            .number-selector {
+                grid-template-columns: repeat(5, 1fr);
+            }
+            
+            .game-controls {
+                flex-direction: column;
+                gap: 0.8rem;
+            }
+            
+            .control-btn {
+                width: 100%;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Фон с пузырями -->
+    <div class="bubbles-bg" id="bubblesBg"></div>
+
+    <header>
+        <div class="logo">BrainSpark</div>
+        <h1 class="game-title">Sudoku Challenge</h1>
+    </header>
+
+    <div class="game-container">
+        <div class="difficulty-selector">
+            <button class="difficulty-btn active" data-difficulty="easy">Легкий</button>
+            <button class="difficulty-btn" data-difficulty="medium">Средний</button>
+            <button class="difficulty-btn" data-difficulty="hard">Сложный</button>
+        </div>
+
+        <div class="game-board">
+            <div class="sudoku-grid" id="sudokuGrid"></div>
+            
+            <div class="number-selector">
+                <button class="number-btn" data-number="1">1</button>
+                <button class="number-btn" data-number="2">2</button>
+                <button class="number-btn" data-number="3">3</button>
+                <button class="number-btn" data-number="4">4</button>
+                <button class="number-btn" data-number="5">5</button>
+                <button class="number-btn" data-number="6">6</button>
+                <button class="number-btn" data-number="7">7</button>
+                <button class="number-btn" data-number="8">8</button>
+                <button class="number-btn" data-number="9">9</button>
+                <button class="number-btn erase-btn" data-number="0"><i class="fas fa-eraser"></i></button>
+            </div>
+            
+            <div class="game-controls">
+                <button class="control-btn check-btn" id="checkBtn">Проверить</button>
+                <button class="control-btn new-game-btn" id="newGameBtn">Новая игра</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-info">
+        <h2 style="font-family: 'Playfair Display', serif; color: var(--coffee); margin-bottom: 1rem;">Описание игры</h2>
+        <div class="game-description">
+            <p>Классическое судоку с несколькими уровнями сложности. Заполните сетку 9×9 цифрами от 1 до 9 так, чтобы:</p>
+            <ul style="margin: 1rem 0; padding-left: 1.5rem;">
+                <li>Каждая строка содержала все цифры от 1 до 9 без повторений</li>
+                <li>Каждый столбец содержал все цифры от 1 до 9 без повторений</li>
+                <li>Каждый блок 3×3 содержал все цифры от 1 до 9 без повторений</li>
+            </ul>
+            <p>Используйте логику и дедукцию, чтобы решить головоломку. Чем сложнее уровень, тем меньше цифр будет дано в начале.</p>
+        </div>
+        
+        <div class="game-stats">
+            <div class="stat"><i class="fas fa-clock"></i> 5-15 мин/день</div>
+            <div class="stat"><i class="fas fa-chart-line"></i> Разная сложность</div>
+            <div class="stat"><i class="fas fa-brain"></i> Логика & Концентрация</div>
+        </div>
+        
+        <p style="margin-top: 1.5rem; font-style: italic; color: var(--coffee);">
+            <strong>Применение в жизни:</strong> Улучшает аналитические способности, стратегическое мышление и внимание к деталям.
+        </p>
+    </div>
+
+    <footer>
+        <p>© 2023 BrainSpark | Разработано <a href="https://t.me/porofite" style="color: var(--coffee); text-decoration: none; font-weight: 600;">Porofite Games</a></p>
+        <p>Тренируйтесь с удовольствием и видите прогресс каждый день!</p>
+    </footer>
+
+    <script>
+        // Создаем пузыри на фоне
+        function createBubbles() {
+            const bubblesBg = document.getElementById('bubblesBg');
+            const bubbleCount = window.innerWidth < 768 ? 20 : 40;
+            
+            for (let i = 0; i < bubbleCount; i++) {
+                const bubble = document.createElement('div');
+                bubble.classList.add('bubble');
+                
+                const size = Math.random() * 60 + 20;
+                const posX = Math.random() * 100;
+                const delay = Math.random() * 15;
+                const duration = Math.random() * 15 + 10;
+                
+                bubble.style.width = `${size}px`;
+                bubble.style.height = `${size}px`;
+                bubble.style.left = `${posX}%`;
+                bubble.style.bottom = `-${size}px`;
+                bubble.style.animationDelay = `${delay}s`;
+                bubble.style.animationDuration = `${duration}s`;
+                
+                bubblesBg.appendChild(bubble);
+            }
+        }
+
+        // Логика игры Sudoku
+        document.addEventListener('DOMContentLoaded', function() {
+            createBubbles();
+            
+            const grid = document.getElementById('sudokuGrid');
+            const numberBtns = document.querySelectorAll('.number-btn');
+            const newGameBtn = document.getElementById('newGameBtn');
+            const checkBtn = document.getElementById('checkBtn');
+            const difficultyBtns = document.querySelectorAll('.difficulty-btn');
+            
+            let selectedCell = null;
+            let currentDifficulty = 'easy';
+            let solution = [];
+            let mistakes = 0;
+            
+            // Инициализация сетки
+            function initializeGrid() {
+                grid.innerHTML = '';
+                
+                for (let i = 0; i < 81; i++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('sudoku-cell');
+                    cell.dataset.row = Math.floor(i / 9);
+                    cell.dataset.col = i % 9;
+                    cell.addEventListener('click', selectCell);
+                    grid.appendChild(cell);
+                }
+                
+                startNewGame();
+            }
+            
+            // Начать новую игру
+            function startNewGame() {
+                const puzzle = generateSudoku(currentDifficulty);
+                solution = puzzle.solution;
+                
+                // Очистить все ячейки
+                document.querySelectorAll('.sudoku-cell').forEach(cell => {
+                    cell.textContent = '';
+                    cell.classList.remove('fixed', 'error', 'selected', 'highlighted');
+                });
+                
+                // Заполнить начальные цифры
+                for (let row = 0; row < 9; row++) {
+                    for (let col = 0; col < 9; col++) {
+                        if (puzzle.board[row][col] !== 0) {
+                            const cellIndex = row * 9 + col;
+                            const cell = grid.children[cellIndex];
+                            cell.textContent = puzzle.board[row][col];
+                            cell.classList.add('fixed');
+                        }
+                    }
+                }
+                
+                mistakes = 0;
+                selectedCell = null;
+            }
+            
+            // Выбрать ячейку
+            function selectCell() {
+                if (this.classList.contains('fixed')) return;
+                
+                // Убрать выделение с предыдущей ячейки
+                if (selectedCell) {
+                    selectedCell.classList.remove('selected');
+                    highlightRelatedCells(selectedCell, false);
+                }
+                
+                // Выделить новую ячейку
+                selectedCell = this;
+                selectedCell.classList.add('selected');
+                highlightRelatedCells(this, true);
+            }
+            
+            // Подсветить связанные ячейки (строку, столбец, блок)
+            function highlightRelatedCells(cell, highlight) {
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                
+                for (let i = 0; i < 81; i++) {
+                    const currentCell = grid.children[i];
+                    const currentRow = parseInt(currentCell.dataset.row);
+                    const currentCol = parseInt(currentCell.dataset.col);
+                    
+                    // Проверяем, находится ли ячейка в той же строке, столбце или блоке 3x3
+                    const sameRow = currentRow === row;
+                    const sameCol = currentCol === col;
+                    const sameBlock = Math.floor(currentRow / 3) === Math.floor(row / 3) && 
+                                      Math.floor(currentCol / 3) === Math.floor(col / 3);
+                    
+                    if (sameRow || sameCol || sameBlock) {
+                        if (highlight) {
+                            currentCell.classList.add('highlighted');
+                        } else {
+                            currentCell.classList.remove('highlighted');
+                        }
+                    }
+                }
+            }
+            
+            // Ввод числа в ячейку
+            function inputNumber(number) {
+                if (!selectedCell || selectedCell.classList.contains('fixed')) return;
+                
+                selectedCell.textContent = number === 0 ? '' : number;
+                selectedCell.classList.remove('error');
+                
+                // Проверка на ошибку
+                const row = parseInt(selectedCell.dataset.row);
+                const col = parseInt(selectedCell.dataset.col);
+                
+                if (number !== 0 && solution[row][col] !== number) {
+                    selectedCell.classList.add('error');
+                    mistakes++;
+                }
+            }
+            
+            // Проверить решение
+            function checkSolution() {
+                let isComplete = true;
+                let isCorrect = true;
+                
+                for (let i = 0; i < 81; i++) {
+                    const cell = grid.children[i];
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    
+                    if (cell.textContent === '') {
+                        isComplete = false;
+                        continue;
+                    }
+                    
+                    if (parseInt(cell.textContent) !== solution[row][col]) {
+                        cell.classList.add('error');
+                        isCorrect = false;
+                        mistakes++;
+                    }
+                }
+                
+                if (!isComplete) {
+                    alert('Продолжайте заполнять! Ошибок: ' + mistakes);
+                } else if (isCorrect) {
+                    alert('Поздравляем! Вы решили судоку правильно!');
+                    // Анимация успеха
+                    grid.classList.add('success-animation');
+                    setTimeout(function() {
+                        grid.classList.remove('success-animation');
+                    }, 600);
+                } else {
+                    alert('Есть ошибки. Попробуйте еще раз. Ошибок: ' + mistakes);
+                }
+            }
+            
+            // Генератор судоку
+            function generateSudoku(difficulty) {
+                // Создаем решенное судоку
+                const solution = generateSolvedSudoku();
+                
+                // Создаем игровое поле, убирая некоторые цифры
+                const board = [];
+                for (let i = 0; i < 9; i++) {
+                    board[i] = solution[i].slice();
+                }
+                
+                let cellsToRemove;
+                
+                switch(difficulty) {
+                    case 'easy':
+                        cellsToRemove = 30 + Math.floor(Math.random() * 10);
+                        break;
+                    case 'medium':
+                        cellsToRemove = 40 + Math.floor(Math.random() * 10);
+                        break;
+                    case 'hard':
+                        cellsToRemove = 50 + Math.floor(Math.random() * 10);
+                        break;
+                    default:
+                        cellsToRemove = 30;
+                }
+                
+                // Удаляем цифры, сохраняя однозначное решение
+                let removed = 0;
+                while (removed < cellsToRemove) {
+                    const row = Math.floor(Math.random() * 9);
+                    const col = Math.floor(Math.random() * 9);
+                    
+                    if (board[row][col] !== 0) {
+                        const temp = board[row][col];
+                        board[row][col] = 0;
+                        
+                        // Проверяем, остается ли решение однозначным
+                        const tempBoard = [];
+                        for (let i = 0; i < 9; i++) {
+                            tempBoard[i] = board[i].slice();
+                        }
+                        
+                        if (solveSudoku(tempBoard)) {
+                            removed++;
+                        } else {
+                            board[row][col] = temp;
+                        }
+                    }
+                }
+                
+                return { board: board, solution: solution };
+            }
+            
+            // Генератор решенного судоку
+            function generateSolvedSudoku() {
+                const grid = [];
+                for (let i = 0; i < 9; i++) {
+                    grid[i] = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+                }
+                
+                // Заполняем диагональные блоки 3x3
+                fillDiagonalBlocks(grid);
+                
+                // Решаем оставшуюся часть
+                solveSudoku(grid);
+                
+                return grid;
+            }
+            
+            // Заполнение диагональных блоков
+            function fillDiagonalBlocks(grid) {
+                for (let box = 0; box < 9; box += 3) {
+                    fillBox(grid, box, box);
+                }
+            }
+            
+            // Заполнение блока 3x3
+            function fillBox(grid, row, col) {
+                const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+                shuffleArray(nums);
+                
+                let index = 0;
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 3; j++) {
+                        grid[row + i][col + j] = nums[index++];
+                    }
+                }
+            }
+            
+            // Алгоритм решения судоку
+            function solveSudoku(grid) {
+                for (let row = 0; row < 9; row++) {
+                    for (let col = 0; col < 9; col++) {
+                        if (grid[row][col] === 0) {
+                            const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+                            shuffleArray(nums);
+                            
+                            for (let k = 0; k < nums.length; k++) {
+                                const num = nums[k];
+                                if (isValid(grid, row, col, num)) {
+                                    grid[row][col] = num;
+                                    
+                                    if (solveSudoku(grid)) {
+                                        return true;
+                                    }
+                                    
+                                    grid[row][col] = 0;
+                                }
+                            }
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+            
+            // Проверка валидности числа в ячейке
+            function isValid(grid, row, col, num) {
+                // Проверка строки
+                for (let x = 0; x < 9; x++) {
+                    if (grid[row][x] === num) return false;
+                }
+                
+                // Проверка столбца
+                for (let x = 0; x < 9; x++) {
+                    if (grid[x][col] === num) return false;
+                }
+                
+                // Проверка блока 3x3
+                const boxRow = Math.floor(row / 3) * 3;
+                const boxCol = Math.floor(col / 3) * 3;
+                
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 3; j++) {
+                        if (grid[boxRow + i][boxCol + j] === num) return false;
+                    }
+                }
+                
+                return true;
+            }
+            
+            // Перемешивание массива
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    const temp = array[i];
+                    array[i] = array[j];
+                    array[j] = temp;
+                }
+                return array;
+            }
+            
+            // Обработчики событий
+            numberBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const number = parseInt(this.dataset.number);
+                    inputNumber(number);
+                });
+            });
+            
+            newGameBtn.addEventListener('click', startNewGame);
+            checkBtn.addEventListener('click', checkSolution);
+            
+            difficultyBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    difficultyBtns.forEach(function(b) {
+                        b.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    currentDifficulty = this.dataset.difficulty;
+                    startNewGame();
+                });
+            });
+            
+            // Инициализация игры
+            initializeGrid();
+            
+            // Обработка ввода с клавиатуры
+            document.addEventListener('keydown', function(e) {
+                if (!selectedCell) return;
+                
+                if (e.key >= '1' && e.key <= '9') {
+                    inputNumber(parseInt(e.key));
+                } else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') {
+                    inputNumber(0);
+                }
+            });
+            
+            // Адаптация к изменению размера экрана
+            window.addEventListener('resize', function() {
+                document.querySelectorAll('.bubble').forEach(function(bubble) {
+                    bubble.remove();
+                });
+                createBubbles();
+            });
+        });
+    </script>
+</body>
+</html>
